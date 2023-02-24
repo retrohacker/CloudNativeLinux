@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      *,
+      ::before,
+      ::after {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        max-height: 100vh;
+        height: 100vh;
+        background-color: #2c292d;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        font-family: monospace;
+        font-size: 12px;
+        color: #fdf9f3;
+      }
+      pre {
+        margin: 0;
+        padding: 0;
+        display: inline-block;
+      }
+      .output {
+        display: flex;
+        flex-direction: column;
+        overflow: scroll;
+      }
+      .input {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+      .input input {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: inherit;
+        margin: 0;
+        padding: 0;
+        flex-grow: 1;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .hide {
+        display: none !important;
+      }
+      .red {
+        color: #ff6188;
+      }
+      .orange {
+        color: #fc9867;
+      }
+      .yellow {
+        color: #ffd866;
+      }
+      .green {
+        color: #a9dc76;
+      }
+      .blue {
+        color: #78dce8;
+      }
+      .purple {
+        color: #ab9df2;
+      }
+      .bgRed {
+        background-color: #ff6188;
+      }
+      .bgOrange {
+        background-color: #fc9867;
+      }
+      .bgYellow {
+        background-color: #ffd866;
+      }
+      .bgGreen {
+        background-color: #a9dc76;
+      }
+      .bgBlue {
+        background-color: #78dce8;
+      }
+      .bgPurple {
+        background-color: #ab9df2;
+      }
+      .bold {
+        font-weight: bold;
+      }
+      .italic {
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="output" id="output"></div>
+    <div class="input">
+      <input type="text" id="input" />
+    </div>
+    <script>
+      const output = document.getElementById("output");
+      const input = document.getElementById("input");
+      const logo = [
+        " ________  ___       ________  ___  ___  ________  ___       ___  ________   ___  ___     ___    ___",
+        "|\\   ____\\|\\  \\     |\\   __  \\|\\  \\|\\  \\|\\   ___ \\|\\  \\     |\\  \\|\\   ___  \\|\\  \\|\\  \\   |\\  \\  /  /|",
+        "\\ \\  \\___|\\ \\  \\    \\ \\  \\|\\  \\ \\  \\\\\\  \\ \\  \\_|\\ \\ \\  \\    \\ \\  \\ \\  \\\\ \\  \\ \\  \\\\\\  \\  \\ \\  \\/  / /",
+        " \\ \\  \\    \\ \\  \\    \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\  \\ \\\\ \\ \\  \\    \\ \\  \\ \\  \\\\ \\  \\ \\  \\\\\\  \\  \\ \\    / / ",
+        "  \\ \\  \\____\\ \\  \\____\\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\  \\_\\\\ \\ \\  \\____\\ \\  \\ \\  \\\\ \\  \\ \\  \\\\\\  \\  /     \\/  ",
+        "   \\ \\_______\\ \\_______\\ \\_______\\ \\_______\\ \\_______\\ \\_______\\ \\__\\ \\__\\\\ \\__\\ \\_______\\/  /\\   \\  ",
+        "    \\|_______|\\|_______|\\|_______|\\|_______|\\|_______|\\|_______|\\|__|\\|__| \\|__|\\|_______/__/ /\\ __\\ ",
+        "                                                                                         |__|/ \\|__| ",
+        "                                                                                                     ",
+        "                                                                                                     ",
+      ].join("\n");
+      let cwd = "~";
+      function prefix() {
+        const prefix = document.createElement("pre");
+        prefix.classList.add("bold");
+        const user = document.createElement("span");
+        user.classList.add("green");
+        user.innerText = "blankenship";
+        prefix.appendChild(user);
+        const host = document.createElement("span");
+        host.classList.add("orange");
+        host.innerText = "@CloudLinux";
+        prefix.appendChild(host);
+        const seperator = document.createElement("span");
+        seperator.innerText = ":";
+        prefix.appendChild(seperator);
+        const path = document.createElement("span");
+        path.classList.add("blue");
+        path.innerText = cwd;
+        prefix.appendChild(path);
+        const prompt = document.createElement("span");
+        prompt.innerText = "$ ";
+        prefix.appendChild(prompt);
+        return prefix;
+      }
+      function writeLine(command) {
+        const line = document.createElement("div");
+        line.classList.add("line");
+        const prompt = prefix();
+        const cmd = document.createElement("span");
+        cmd.innerText = command;
+        line.appendChild(prefix());
+        line.appendChild(cmd);
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+      }
+      function writeRaw(msg) {
+        const line = document.createElement("div");
+        line.classList.add("line");
+        const message = document.createElement("pre");
+        if (typeof msg === "string") {
+          message.innerText = msg;
+        } else {
+          message.appendChild(msg);
+        }
+        line.appendChild(message);
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+      }
+      function color(classList, msg) {
+        const message = document.createElement("pre");
+        classList.split(" ").forEach(function (name) {
+          message.classList.add(name);
+        });
+        message.innerText = msg;
+        return message;
+      }
+      function parse(cmd) {
+        return cmd.match(/(?:[^\s"']+|['"][^'"]*["'])+/g);
+      }
+      function run(cmd) {
+        writeLine(cmd);
+        prompt.hide();
+        const parsed = parse(cmd);
+        const command = parsed[0];
+        const args = parsed.slice(1);
+        if (!commands[command]) {
+          writeRaw(`${command}: command not found`);
+          writeRaw("Try `help`");
+          prompt.shell();
+          return;
+        }
+        commands[command](args, function done() {
+          prompt.shell();
+        });
+      }
+      let promptSubmit = function (cmd) {};
+      const prompt = {
+        hide: function hide() {
+          promptSubmit = function () {};
+          input.parentElement.classList.add("hide");
+          Array.from(input.parentElement.children).forEach(function (node) {
+            if (node === input) {
+              return;
+            }
+            input.parentElement.removeChild(node);
+          });
+        },
+        input: function promptInput(msg, cb) {
+          prompt.hide();
+          promptSubmit = function (data) {
+            writeRaw(msg + " " + data);
+            prompt.hide();
+            cb(data);
+          };
+          input.parentElement.classList.remove("hide");
+          input.classList.remove("hide");
+          const message = document.createElement("pre");
+          message.innerText = msg + " ";
+          input.parentElement.prepend(message);
+        },
+        shell: function shell() {
+          prompt.hide();
+          promptSubmit = run;
+          input.parentElement.classList.remove("hide");
+          input.parentElement.prepend(prefix());
+        },
+      };
+      input.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") {
+          const cmd = input.value;
+          input.value = "";
+          promptSubmit(cmd);
+        }
+      });
+      function waterfall(funcs, args) {
+        const current = funcs[0];
+        const remaining = funcs.slice(1);
+        if (!current) {
+          return;
+        }
+        current(args, function done(args) {
+          waterfall(remaining, args);
+        });
+      }
+      const commands = {};
+      commands["help"] = function help(args, cb) {
+        const cmd = args[0];
+        writeRaw("CloudNative Linux Shell 1.0.0-release");
+        if (cmd === "ls") {
+          writeRaw("Usage: ls [FILE|BUCKET]...");
+          writeRaw(
+            "List information about FILEs or BUCKETs (current bucket by default)."
+          );
+        } else {
+          writeRaw("These commands are provided by cloud functions.");
+          writeRaw("Type `help <name>` to learn more about a command.");
+          writeRaw("Type their name into the shell to run them.");
+          writeRaw("");
+          writeRaw("ls");
+        }
+        cb();
+      };
+      commands["ls"] = function ls(args, cb) {
+        if (args.length === 0) {
+          args.push(cwd);
+        }
+        waterfall([
+          function (_, cb) {
+            const regions = [
+              "us-east-a",
+              "us-east-b",
+              "us-west-a",
+              "us-central-a",
+            ];
+            prompt.input(
+              "Pick a region (default us-east-a):",
+              function (region) {
+                region = region || "us-east-a";
+                if (regions.indexOf(region) < 0) {
+                  writeRaw(
+                    color(
+                      "red bold",
+                      `Error: Must be one of ${regions.join(", ")}`
+                    )
+                  );
+                  return prompt.shell();
+                }
+                writeRaw(`Deploying to ${region}`);
+                cb({ region });
+              }
+            );
+          },
+          function (config, cb) {
+            prompt.input("Allocate RAM in MB (default 128):", function (ram) {
+              ram = parseInt(ram || "128");
+              cb({ ...config, ram });
+            });
+          },
+          function (config, cb) {
+            prompt.input("Allocate CPU (default 1):", function (cpu) {
+              cpu = parseInt(cpu || "1");
+              cb({ ...config, cpu });
+            });
+          },
+          function (config, cb) {
+            prompt.input(
+              "Allocate ephemeral storage in MB (default 512):",
+              function (storage) {
+                storage = parseInt(storage || "512");
+                cb({ ...config, storage });
+              }
+            );
+          },
+          function (config, cb) {
+            writeRaw("Generating declarative config...");
+            setTimeout(cb, 500, config);
+          },
+          function (config, cb) {
+            writeRaw("Packaging ls.zip...");
+            setTimeout(cb, 500, config);
+          },
+          function (config, cb) {
+            writeRaw("Uploading ls.zip...");
+            setTimeout(cb, 2000, config);
+          },
+          function (config, cb) {
+            if (config.ram > 10240) {
+              writeRaw(color("red bold", "Error: maximum RAM is 10240MB"));
+              return prompt.shell();
+            }
+            if (config.ram < 128) {
+              writeRaw(color("red bold", "Error: minimum RAM is 128MB"));
+              return prompt.shell();
+            }
+            if (config.cpu > 12) {
+              writeRaw(color("red bold", "Error: maximum CPUs is 12"));
+              return prompt.shell();
+            }
+            if (config.cpu < 1) {
+              writeRaw(color("red bold", "Error: minimum CPUs is 1"));
+              return prompt.shell();
+            }
+            if (config.storage < 512) {
+              writeRaw(color("red bold", "Error: minimum storage is 512MB"));
+              return prompt.shell();
+            }
+            if (config.storage > 10240) {
+              writeRaw(color("red bold", "Error: minimum storage is 10240MB"));
+              return prompt.shell();
+            }
+            cb(config);
+          },
+          function (config, cb) {
+            writeRaw("Invoking ls...");
+            setTimeout(cb, 500, config);
+          },
+          function (config, cb) {
+            if (config.ram < 2048) {
+              writeRaw(color("red bold", "Error: ENOMEM"));
+              writeRaw(color("red bold", "Process ran out of memory"));
+              return prompt.shell();
+            }
+            if (config.storage < 5120) {
+              writeRaw(color("red bold", "Error: ENOSPC"));
+              writeRaw(color("red bold", "Disk is full"));
+              return prompt.shell();
+            }
+            writeRaw(color("red bold", "Error: IAM Permission error"));
+            writeRaw(
+              color(
+                "red bold",
+                `IAM Role blankenship does not have access to ${args.join(
+                  ", "
+                )}`
+              )
+            );
+            return prompt.shell();
+          },
+        ]);
+      };
+      writeRaw(
+        "Linux CloudNative 5.10.0.16-DataCenter #1 SMP CloudLinux 1.0.0 (2023-02-34)"
+      );
+      writeRaw(new Date().toGMTString());
+      writeRaw(color("bold blue", logo));
+      writeRaw(
+        [
+          "CloudNative Linux (a.k.a CloudLinux) is a modern platform that aims to minimize the",
+          "operational burden of building and scaling programs in environments such as public,",
+          "private, and hybrid clouds. Under the hood, CloudLinux uses technologies such as",
+          "containers, serverless functions, and immutable infrastructure deployed via declarative",
+          "code to provied a seemless developer and user experience.",
+          "",
+          "CloudLinux is an experiment exploring what a classic shell-like experience might look",
+          `like for a modern cloud-native "Operating System."`,
+          "",
+          "Get started by running help to see a list of commands",
+        ].join("\n")
+      );
+      prompt.shell();
+      input.focus();
+      input.value = "help";
+      document.addEventListener("keypress", (event) => {
+        if (document.activeElement !== input) {
+          input.value += event.key;
+          input.focus();
+        }
+      });
+      document.addEventListener("click", () => {
+        input.focus();
+      });
+    </script>
+  </body>
+</html>

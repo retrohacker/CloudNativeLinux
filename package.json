@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "dev": "python3 -m http.server",
+    "prelint:watch": "npm run lint",
+    "lint:watch": "onchange '**/*' -- prettier --write -u {{file}}",
+    "lint": "prettier --write -u ."
+  },
+  "devDependencies": {
+    "onchange": "^7.1.0",
+    "prettier": "^2.8.1"
+  }
+}

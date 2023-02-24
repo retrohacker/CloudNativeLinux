@@ -402,6 +402,11 @@
           input.focus();
         }
       });
+      document.addEventListener("keydown", (event) => {
+        if (event.ctrlKey && event.key === "c") {
+          return prompt.shell();
+        }
+      });
       document.addEventListener("click", () => {
         input.focus();
       });

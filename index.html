@@ -341,7 +341,7 @@
               return prompt.shell();
             }
             if (config.storage > 10240) {
-              writeRaw(color("red bold", "Error: minimum storage is 10240MB"));
+              writeRaw(color("red bold", "Error: maximum storage is 10240MB"));
               return prompt.shell();
             }
             cb(config);
